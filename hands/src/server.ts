@@ -1,3 +1,8 @@
+// Must be the first import: loads hands/.env then ../.env (repo root) into
+// process.env, without overriding anything already set, before any other
+// module reads process.env at import time. See src/env.ts for details.
+import "./env.js";
+
 import { randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";

@@ -70,6 +70,31 @@ def _is_transient(exc: Exception) -> bool:
     )
 
 
+# Low temperature keeps extraction deterministic, but the gpt-5 reasoning
+# models reject every value except the default: 400 invalid_request_error
+# "Unsupported value: 'temperature' does not support 0.2 with this model."
+# Rather than hardcode which model ids allow it, send it until the API says no
+# and then latch it off for the rest of the process.
+TEMPERATURE = 0.2
+_temperature_ok = True
+
+# The gpt-5 reasoning models bill hidden reasoning tokens against the SAME cap
+# as the visible answer, so a caller's budget — sized for the answer it wants —
+# can be spent entirely on reasoning and the call dies with
+# `LengthFinishReasonError` having emitted nothing. Callers keep describing the
+# answer they need; this adds the reasoning room on top.
+REASONING_HEADROOM_TOKENS = 4000
+_IS_REASONING_MODEL = PROVIDER != "mock" and bool(re.match(r"(?:openai/)?gpt-5", MODEL))
+
+
+def _rejects_temperature(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return "temperature" in message and (
+        "unsupported_value" in message or "does not support" in message
+        or "unsupported parameter" in message
+    )
+
+
 def _call(*, system: str, user: str, max_tokens: int, timeout: float,
           response_format: Any = None) -> Any:
     if PROVIDER == "mock":
@@ -77,21 +102,32 @@ def _call(*, system: str, user: str, max_tokens: int, timeout: float,
     if PROVIDER not in _KEY_ENV: raise RuntimeError(f"unsupported LLM_PROVIDER: {PROVIDER}")
     if not status()["configured"]: raise RuntimeError(f"{_KEY_ENV[PROVIDER]} not set; LLM disabled")
     if completion is None: raise RuntimeError("any-llm-sdk is not installed")
+    global _temperature_ok
     kwargs = dict(
         model=MODEL, provider=PROVIDER,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        max_tokens=max_tokens, timeout=timeout, temperature=0.2,
+        max_tokens=max_tokens + (REASONING_HEADROOM_TOKENS if _IS_REASONING_MODEL else 0),
+        timeout=timeout,
     )
     if response_format is not None:
         kwargs["response_format"] = response_format
-    for attempt in range(2):
+    attempt = 0
+    while True:
+        call_kwargs = dict(kwargs)
+        if _temperature_ok:
+            call_kwargs["temperature"] = TEMPERATURE
         try:
-            return completion(**kwargs)
+            return completion(**call_kwargs)
         except Exception as exc:
+            # Retried outside the transient budget: it's a deterministic 400
+            # that can only happen once, and the retry is the real call.
+            if _temperature_ok and _rejects_temperature(exc):
+                _temperature_ok = False
+                continue
             if attempt or not _is_transient(exc):
                 raise
+            attempt += 1
             time.sleep(0.5)
-    raise RuntimeError("unreachable")
 
 
 def complete_text(system: str, user: str, *, max_tokens: int, timeout: float) -> str:

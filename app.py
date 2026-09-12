@@ -324,10 +324,12 @@ def main() -> None:
         except AudioFileError as exc:
             print(f"app.py: --from-file: {exc}", file=sys.stderr)
             sys.exit(2)
-        if not os.environ.get("DEEPGRAM_API_KEY", "").strip():
-            print("app.py: --from-file streams the WAV through Deepgram and needs a "
-                  "real DEEPGRAM_API_KEY.\n"
-                  "        Set it in .env (or Settings → Integrations), or use "
+        stt_provider = os.environ.get("STT_PROVIDER", "deepgram").strip().lower() or "deepgram"
+        stt_key = "OPENAI_API_KEY" if stt_provider == "openai" else "DEEPGRAM_API_KEY"
+        if not os.environ.get(stt_key, "").strip():
+            print(f"app.py: --from-file streams the WAV through {stt_provider} and needs a "
+                  f"real {stt_key}.\n"
+                  "        Set it in .env, or use "
                   "--from-transcript fixtures/meeting-transcript.jsonl for a "
                   "keyless replay.", file=sys.stderr)
             sys.exit(2)

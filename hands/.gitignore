@@ -2,3 +2,4 @@
 dist/
 node_modules/
 .hands-claims.json
+.hands-run-tokens.json

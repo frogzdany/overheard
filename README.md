@@ -214,12 +214,50 @@ npx ambiguous auth signup --name "Overheard"     # provisions the coworker ident
 - The any-guardrail prompt-injection screen has false positives; it is advisory only (a
   flagged action still publishes, with a lowered confidence and a warning) and off by
   default.
-- The OpenAI Realtime STT path has not been exercised against a live meeting, only
-  against the replay fixtures.
+- The OpenAI Realtime STT path is verified live against `fixtures/meeting-clip.wav`
+  (`STT_PROVIDER=openai ... --from-file`), not yet against a live meeting. It speaks the
+  GA Realtime shape — `session.update` with a `type: "transcription"` session and
+  everything under `audio.input`; the old beta shape (`transcription_session.update`
+  behind `OpenAI-Beta: realtime=v1`) is switched off server-side and now closes the
+  socket with `invalid_request_error.beta_api_shape_disabled`. The 16 kHz capture is
+  upsampled to 24 kHz because `audio.input.format` accepts nothing else.
+- `OPENAI_STT_MODEL` defaults to `gpt-live-transcribe`, which rejects `turn_detection`
+  and therefore never closes an item: it streams deltas and emits no final. The worker
+  substitutes `gpt-transcribe` (and says so in the status line) for that model and for
+  `gpt-realtime-whisper`; set `OPENAI_STT_MODEL` to any VAD-capable Realtime
+  transcription model to override.
+- Realtime line breaks come from server VAD alone, so `silence_duration_ms` is what sets
+  transcript line length. The synthesized fixture clip leaves almost no silence between
+  lines: at 500 ms the first 95 s came back as 8 finals, one of them 63 words spanning
+  six speaker turns; at the 250 ms this worker now sends, the same stretch is 12 finals,
+  one per scripted line, word-for-word against `meeting-transcript.jsonl` apart from
+  punctuation and casing. Real meetings pause longer, so expect longer lines there. One
+  observed word slip so far: "before lunch" for "before launch".
+- `--from-file` still refuses to start without a non-empty `DEEPGRAM_API_KEY`, even when
+  `STT_PROVIDER=openai` makes the Deepgram path unreachable. Set the variable to any
+  placeholder to replay a WAV through OpenAI.
 - The Trigger.dev waitpoint flow has not been exercised against the real Trigger.dev
   cloud, only locally with `npx trigger.dev dev`.
 - The OpenAI Realtime STT path does not diarize: all system audio comes through as a
   single speaker.
+- The suggestion brain is verified live against `fixtures/expected-actions.json` with
+  `LLM_PROVIDER=openai`: all five expected actions, one per kind, no false positives,
+  verbatim evidence and schema-correct args, in ~14 s per tick on `gpt-5.5`. A later
+  correction ("make that diagram due Monday instead") refines the existing action in
+  place rather than duplicating it.
+- The engine never resolves speaker labels — `Speaker 0` / `Speaker 1` are what reach
+  the LLM — so an `assignee` or `attendees` entry is a real name only when the
+  transcript itself says it. In the fixture, Daniel is addressed by name and Ana never
+  is, so she stays `Speaker 0`.
+- `LLM_MODEL` unset means the newest `gpt-5*` id the account can list wins, which is a
+  dated snapshot (`gpt-5.5-2026-04-23`) rather than the rolling alias. The hardcoded
+  fallback if that listing call fails is `gpt-5.6`, which not every account has — pin
+  `LLM_MODEL` for a reproducible demo.
+- The gpt-5 models reject `temperature` and spend hidden reasoning tokens against the
+  same budget as the answer; `engine/llm.py` drops the temperature after the API
+  refuses it once and adds reasoning headroom to every caller's `max_tokens`. Only the
+  actions worker has been re-checked live since — the summary, insight and titler
+  prompts have not.
 - Ambiguous MCP tool names are resolved at runtime from `listTools()`, not hardcoded, so
   a workspace whose server exposes differently named tools may need an
   `AMBIGUOUS_TOOL_*` override.

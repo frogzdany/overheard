@@ -8,7 +8,7 @@ import threading
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
-from typing import Annotated, Callable, Literal
+from typing import Callable, Literal
 
 from PySide6.QtCore import QObject, Signal
 from pydantic import BaseModel, ConfigDict, Field
@@ -238,15 +238,41 @@ class _Lookup(_Candidate):
 
 
 class ActionsResponse(_StrictModel):
-    actions: list[Annotated[
-        _CreateTask | _ScheduleFollowup | _DraftMessage | _CreateDoc | _Lookup,
-        Field(discriminator="kind"),
-    ]]
+    # A plain union, NOT Field(discriminator="kind"): a discriminated union
+    # serializes to JSON Schema `oneOf`, and OpenAI structured outputs rejects
+    # it ("In context=('properties','actions','items'), 'oneOf' is not
+    # permitted"). The undiscriminated union emits `anyOf`, which is accepted;
+    # every member still pins its own `kind`/`tool` Literal, so pydantic
+    # resolves the variant exactly as before.
+    actions: list[_CreateTask | _ScheduleFollowup | _DraftMessage | _CreateDoc | _Lookup]
 
 
 ACTION_RESPONSE_SCHEMA = ActionsResponse.model_json_schema()
 
-ACTION_SYSTEM_PROMPT = """Analyze a live meeting transcript incrementally. Emit ONLY concrete commitments and requests that can be executed as exactly one of: create_task, schedule_followup, draft_message, create_doc, lookup. Omit vague ideas, completed work, rhetorical questions, and anything without transcript evidence. Copy evidence verbatim. Use the matching tool and args shape: create_task {title, assignee?, due?, notes?}; schedule_followup {title, when (ISO), attendees[], notes?}; draft_message {to, body}; create_doc {title, body}; lookup {query}. ALREADY_KNOWN titles must not be duplicated; an improved version may return its existing id. Return strict JSON matching the supplied schema."""
+ACTION_SYSTEM_PROMPT = """Analyze a live meeting transcript incrementally. Emit ONLY commitments an assistant could carry out FOR the participants, each as exactly one of:
+- create_task {title, assignee?, due?, notes?} — a person owes a specific existing artifact to someone (send/share/file it).
+- schedule_followup {title, when, attendees[], notes?} — a meeting was agreed.
+- draft_message {to, body} — someone will post or send a message to a person or channel.
+- create_doc {title, body} — someone will WRITE a document (plan, one-pager, spec, brief, agenda). When the deliverable is the document itself, this kind wins over create_task.
+- lookup {query} — someone wants a fact found.
+Skip work the team performs itself (writing code, fixes, running tests, reviews), progress reports, vague ideas, completed work, rhetorical questions, and anything without transcript evidence. Prefer few high-value actions over many.
+Each evidence entry is the spoken words copied EXACTLY from the transcript, without the leading [timestamp] Speaker prefix. Resolve relative dates against TODAY: create_task.due is an ISO date (YYYY-MM-DD), schedule_followup.when an ISO local datetime (YYYY-MM-DDTHH:MM:SS), attendees and assignee the person's real name whenever the transcript reveals one (someone is addressed by it), otherwise their speaker label.
+ALREADY_KNOWN titles must not be duplicated; return an existing id when refining that action. Return strict JSON matching the supplied schema."""
+
+
+def build_user_message(transcript: str, rolling_context: str,
+                       already_known: dict) -> str:
+    """Assemble the user turn for one extraction pass.
+
+    Split out of the worker so the prompt can be exercised against a fixture
+    without standing up Qt and a session.
+    """
+    return (
+        f"TODAY: {datetime.now().strftime('%Y-%m-%d (%A)')}\n\n"
+        f"ROLLING_CONTEXT:\n---\n{rolling_context[-3000:]}\n---\n\n"
+        f"ALREADY_KNOWN:\n{json.dumps(already_known, ensure_ascii=False)}\n\n"
+        f"NEW_TRANSCRIPT:\n---\n{transcript}\n---"
+    )
 
 
 class ActionsWorker(QObject):
@@ -286,11 +312,7 @@ class ActionsWorker(QObject):
         transcript = transcript.strip()
         if len(transcript) < 80:
             return False
-        user = (
-            f"ROLLING_CONTEXT:\n---\n{rolling_context[-3000:]}\n---\n\n"
-            f"ALREADY_KNOWN:\n{json.dumps(already_known, ensure_ascii=False)}\n\n"
-            f"NEW_TRANSCRIPT:\n---\n{transcript}\n---"
-        )
+        user = build_user_message(transcript, rolling_context, already_known)
         try:
             payload = complete_json(ACTION_SYSTEM_PROMPT, user, schema=ActionsResponse,
                                     max_tokens=1200, timeout=60)

@@ -28,12 +28,25 @@ _REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription"
 _INT16_MIN = -32768
 _INT16_MAX = 32767
 _INT16_SCALE = 32768.0
-# The Realtime API consumes 24 kHz PCM16. Every other stage of the capture path
-# runs at engine.config.SAMPLE_RATE (16 kHz — Deepgram's rate, and the rate the
-# WAV archive is written at), so audio is upsampled on its way to the socket
-# only. 16k -> 24k is an exact 3:2 ratio.
+# The Realtime API consumes 24 kHz PCM16 — `audio.input.format` accepts
+# {"type": "audio/pcm", "rate": 24000} and nothing else. Every other stage of
+# the capture path runs at engine.config.SAMPLE_RATE (16 kHz — Deepgram's rate,
+# and the rate the WAV archive is written at), so audio is upsampled on its way
+# to the socket only. 16k -> 24k is an exact 3:2 ratio.
 REALTIME_SAMPLE_RATE = 24_000
 _RESAMPLE_RATIO = REALTIME_SAMPLE_RATE / SAMPLE_RATE
+# Transcription models that stream `.delta` text but reject `turn_detection`,
+# so the server never closes an item and no
+# `conversation.item.input_audio_transcription.completed` is ever emitted.
+# This worker's whole contract is one final per utterance, so such a model
+# would publish interims and nothing else; the alternative — the client
+# sending `input_audio_buffer.commit` on a timer — slices finals mid-word.
+# Verified live 2026-09-12: `gpt-live-transcribe` answers a session.update
+# carrying turn_detection with "Turn detection is not supported for this
+# transcription model.", and with turn_detection omitted produced 140 deltas
+# and zero finals over 45 s of the fixture clip.
+_NO_TURN_DETECTION_MODELS = frozenset({"gpt-live-transcribe", "gpt-realtime-whisper"})
+_SEGMENTING_MODEL = "gpt-transcribe"
 
 
 class OpenAIStreamer(QObject):
@@ -57,7 +70,10 @@ class OpenAIStreamer(QObject):
         self._archive_path = archive_path
         self._mic_device = mic_device or None
         self._capture_apps = [b for b in (capture_apps or []) if b]
-        self._model = OPENAI_STT_MODEL
+        self._model_requested = OPENAI_STT_MODEL
+        self._model = (_SEGMENTING_MODEL
+                       if OPENAI_STT_MODEL in _NO_TURN_DETECTION_MODELS
+                       else OPENAI_STT_MODEL)
 
         self._running = False
         self._t_session_start = 0.0
@@ -79,21 +95,49 @@ class OpenAIStreamer(QObject):
         self._resample_phase: dict[str, float] = {}
 
     def _session_update(self) -> dict:
+        """The GA Realtime transcription-session config.
+
+        The beta shape this worker used to send (`transcription_session.update`
+        with `input_audio_format` / `input_audio_transcription`, behind the
+        `OpenAI-Beta: realtime=v1` header) is switched off server-side: the
+        socket now closes with 4000
+        `invalid_request_error.beta_api_shape_disabled` the moment it is sent.
+        GA takes `session.update` with a `type: "transcription"` session and
+        everything nested under `audio.input`.
+        """
         transcription: dict[str, str] = {"model": self._model}
         if self._language != "multi":
             transcription["language"] = self._language
         if self._context:
             transcription["prompt"] = self._context
         return {
-            "type": "transcription_session.update",
+            "type": "session.update",
             "session": {
-                "input_audio_format": "pcm16",
-                "input_audio_transcription": transcription,
-                "turn_detection": {
-                    "type": "server_vad",
-                    "threshold": 0.5,
-                    "prefix_padding_ms": 300,
-                    "silence_duration_ms": 500,
+                "type": "transcription",
+                "audio": {
+                    "input": {
+                        # `audio.input` is replaced wholesale, so every field
+                        # this worker needs has to be restated here — leaving
+                        # turn_detection out sets it to null, not "unchanged".
+                        "format": {"type": "audio/pcm",
+                                   "rate": REALTIME_SAMPLE_RATE},
+                        "transcription": transcription,
+                        "turn_detection": {
+                            "type": "server_vad",
+                            "threshold": 0.5,
+                            "prefix_padding_ms": 300,
+                            # Server VAD is what closes an item, so this
+                            # number IS the transcript's line length. 500 ms
+                            # rarely fires between two turns of a real
+                            # back-and-forth: over the same 60 s of
+                            # fixtures/meeting-clip.wav it produced 2 finals
+                            # (one of 63 words spanning six speaker turns)
+                            # where 250 ms produced 13, one per scripted line.
+                            # The API's own default for a transcription
+                            # session is 200 ms.
+                            "silence_duration_ms": 250,
+                        },
+                    },
                 },
             },
         }
@@ -103,14 +147,15 @@ class OpenAIStreamer(QObject):
         try:
             ws = connect(
                 _REALTIME_URL,
-                additional_headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "OpenAI-Beta": "realtime=v1",
-                },
+                additional_headers={"Authorization": f"Bearer {api_key}"},
                 open_timeout=10,
                 close_timeout=2,
                 ping_interval=20,
                 ping_timeout=20,
+                # This socket outlives the call and is closed by _cleanup, so
+                # it can't be a context manager; `legacy=True` is how
+                # websockets.sync wants that spelled.
+                legacy=True,
             )
             ws.send(json.dumps(self._session_update()))
         except Exception as exc:
@@ -328,6 +373,10 @@ class OpenAIStreamer(QObject):
 
         self._running = True
         self._t_session_start = time.time()
+        if self._model != self._model_requested:
+            self.status.emit(
+                f"OpenAI STT: {self._model_requested} cannot segment utterances "
+                f"(no turn detection) — using {self._model}")
         if not self._open_stream("system"):
             self._running = False
             return
