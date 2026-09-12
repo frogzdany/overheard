@@ -159,10 +159,28 @@ Prerequisites:
 - Node 22
 - Screen Recording permission for live capture (macOS prompts on first use)
 
+### One-command demo
+
+`run-demo.sh` starts hands, the engine, and the web app together (in that order, waiting
+for each one's health before starting the next), loading the root `.env` first and
+tearing everything down cleanly on Ctrl-C. It's the fastest way to reproduce the keyless
+path below or switch into `--live` / `--executor=trigger` for the real path:
+
+```bash
+./run-demo.sh --mock --transcript --speed=0   # keyless demo, replayed as fast as possible
+./run-demo.sh                                 # real keys from .env, scripted transcript replay
+./run-demo.sh --live                          # real live capture (needs the audio helper built)
+./run-demo.sh --executor=trigger              # also starts the Trigger.dev dev worker
+```
+
+Run `./run-demo.sh --help` for the full flag list (`--file`, `--port`, `--hands-port`,
+`--no-web`, `--no-dev`, …). Logs are tee'd to `.dev-logs/`.
+
 ### Keyless demo path
 
 No API keys, no microphone, no real workspace. Runs the whole loop against fixtures and
-mock connectors.
+mock connectors. (`./run-demo.sh --mock --transcript --speed=0` does this in one step —
+see above.)
 
 ```bash
 # Engine, replaying the scripted fixture meeting instead of live audio
@@ -202,6 +220,8 @@ npx ambiguous auth signup --name "Overheard"     # provisions the coworker ident
 # Build the audio helper once, then run everything (engine on :8765, web on :3000)
 ./build-audio-helper.sh
 ./run-dev.sh
+# or, to also start hands (and the Trigger.dev worker in trigger mode) in one command:
+./run-demo.sh --live [--executor=trigger]
 ```
 
 > **One ScreenCaptureKit client per code identity.** Build the audio helper once and do
