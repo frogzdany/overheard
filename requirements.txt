@@ -1,0 +1,30 @@
+# Overheard engine — direct dependencies only (transitive pins are left to pip).
+# Pinned to the versions this was built and tested against on macOS 14 / Python 3.12.
+
+# Qt event loop + worker threads (QCoreApplication only — no window is ever created).
+PySide6==6.11.1
+
+# Local HTTP + WebSocket API the web dashboard talks to.
+fastapi==0.136.1
+uvicorn==0.47.0
+pydantic==2.12.5
+
+# Speech-to-text (two live streams: system audio + mic).
+deepgram-sdk==7.3.1
+
+# LLM workers: insights, summaries, session titles, and actions.
+any-llm-sdk[openai,openrouter]==1.27.2
+
+# Audio capture + framing.
+sounddevice==0.5.5
+numpy==2.4.4
+
+# .env loading at startup.
+python-dotenv==1.2.2
+
+# Optional: Mozilla.ai any-guardrail prompt-injection screen for draft_message /
+# create_doc actions (GUARDRAIL=on). Pulls in torch + transformers to run
+# deepset/deberta-v3-base-injection locally on CPU (~370MB model download on
+# first use). Left uninstalled by default is fine — engine/guardrail.py treats
+# a missing package as a pass-through (see .env.example).
+any-guardrail[huggingface]==0.7.7

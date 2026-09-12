@@ -1,0 +1,38 @@
+{"t": 0.0, "speaker": "Speaker 0", "text": "Hey Daniel, thanks for hopping on. Can you hear me okay?"}
+{"t": 4.49, "speaker": "Speaker 1", "text": "Loud and clear. Morning."}
+{"t": 6.12, "speaker": "Speaker 0", "text": "Morning. Quick check-in on Project Atlas before the planning review."}
+{"t": 10.2, "speaker": "Speaker 1", "text": "Sounds good, solid progress on the ingestion pipeline this sprint."}
+{"t": 14.29, "speaker": "Speaker 0", "text": "How's the service split holding up since last month?"}
+{"t": 17.96, "speaker": "Speaker 1", "text": "Holding up well, no surprises."}
+{"t": 20.0, "speaker": "Speaker 0", "text": "Good to hear. Before we go further, can you send me the Q3 architecture diagram today? I want to walk leadership through it this afternoon."}
+{"t": 30.29, "speaker": "Speaker 1", "text": "Yeah, no problem. I'll send you the Q3 architecture diagram today, within the hour."}
+{"t": 36.06, "speaker": "Speaker 0", "text": "Perfect. Is it still the three-service split, or did that change?"}
+{"t": 40.59, "speaker": "Speaker 1", "text": "Mostly the same. I added an event bus between the scheduler and notifications."}
+{"t": 45.94, "speaker": "Speaker 0", "text": "Good, that was my worry. Did the load testing numbers come back?"}
+{"t": 50.88, "speaker": "Speaker 1", "text": "Not yet, running overnight. I'll have numbers by tomorrow morning."}
+{"t": 55.0, "speaker": "Speaker 0", "text": "Let's plan a short follow-up once you have those numbers. Thirty minutes, next Tuesday at ten?"}
+{"t": 64.66, "speaker": "Speaker 1", "text": "Tuesday at ten works. I'll block thirty minutes on my calendar."}
+{"t": 71.29, "speaker": "Speaker 0", "text": "Great, I'll send the invite after this call."}
+{"t": 76.12, "speaker": "Speaker 1", "text": "Also, hiring's looking up. We got a signed offer out to the backend contractor."}
+{"t": 84.57, "speaker": "Speaker 0", "text": "Great news, we needed the extra hands before launch."}
+{"t": 90.0, "speaker": "Speaker 1", "text": "Once we wrap up, I'll draft a summary of today's decisions and post it in the team chat so everyone's aligned."}
+{"t": 98.65, "speaker": "Speaker 0", "text": "Perfect, that saves me writing notes later. Keep it high level."}
+{"t": 103.18, "speaker": "Speaker 1", "text": "Will do. I'm a little worried about the retry logic on the webhook consumer."}
+{"t": 108.94, "speaker": "Speaker 0", "text": "What's the concern?"}
+{"t": 110.18, "speaker": "Speaker 1", "text": "If Atlas Labs' partners send duplicate events during a retry storm, we could double-process a task."}
+{"t": 116.76, "speaker": "Speaker 0", "text": "Can we add idempotency keys before launch?"}
+{"t": 119.65, "speaker": "Speaker 1", "text": "Yeah, small change. I can have it in by end of next week."}
+{"t": 125.0, "speaker": "Speaker 0", "text": "Separately, for the executive review, I need a one-page rollout plan. Can you have a draft by Friday?"}
+{"t": 134.26, "speaker": "Speaker 1", "text": "Friday works. I'll put together a one-pager covering scope, timeline, and risks."}
+{"t": 140.44, "speaker": "Speaker 0", "text": "That's exactly what I need. Bullet points, nothing fancy."}
+{"t": 145.07, "speaker": "Speaker 1", "text": "I'll loop in design too, so it matches the onboarding screens."}
+{"t": 150.74, "speaker": "Speaker 0", "text": "Good call. Still on track for existing customers first?"}
+{"t": 155.37, "speaker": "Speaker 1", "text": "Yes. Phase one existing customers, phase two new signups."}
+{"t": 160.0, "speaker": "Speaker 0", "text": "One more thing. Does anyone know what Acme Corp charges for their enterprise tier? I keep hearing they're pricier than us."}
+{"t": 168.48, "speaker": "Speaker 1", "text": "Not off the top of my head. Want me to look up Acme Corp's enterprise pricing after the call?"}
+{"t": 176.18, "speaker": "Speaker 0", "text": "Yes please, that'd help the pricing deck."}
+{"t": 179.28, "speaker": "Speaker 1", "text": "Will do. That's everything from me."}
+{"t": 181.98, "speaker": "Speaker 0", "text": "Agreed, this was productive. Thanks, Daniel."}
+{"t": 184.69, "speaker": "Speaker 1", "text": "Anytime. Diagram's on its way."}
+{"t": 187.02, "speaker": "Speaker 0", "text": "Sounds great, talk soon."}
+{"t": 188.95, "speaker": "Speaker 1", "text": "Bye."}

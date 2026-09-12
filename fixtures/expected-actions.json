@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "create_task",
+    "title": "Send Ana the Q3 architecture diagram",
+    "evidence": [
+      "Good to hear. Before we go further, can you send me the Q3 architecture diagram today? I want to walk leadership through it this afternoon.",
+      "Yeah, no problem. I'll send you the Q3 architecture diagram today, within the hour."
+    ],
+    "args": {
+      "title": "Send Q3 architecture diagram to Ana",
+      "assignee": "Daniel",
+      "due": "2026-09-12"
+    }
+  },
+  {
+    "kind": "schedule_followup",
+    "title": "Project Atlas engineering follow-up",
+    "evidence": [
+      "Let's plan a short follow-up once you have those numbers. Thirty minutes, next Tuesday at ten?",
+      "Tuesday at ten works. I'll block thirty minutes on my calendar."
+    ],
+    "args": {
+      "title": "Project Atlas follow-up",
+      "when": "2026-09-15T10:00:00",
+      "attendees": ["Ana", "Daniel"]
+    }
+  },
+  {
+    "kind": "draft_message",
+    "title": "Post decisions summary to team chat",
+    "evidence": [
+      "Once we wrap up, I'll draft a summary of today's decisions and post it in the team chat so everyone's aligned."
+    ],
+    "args": {
+      "to": "team chat",
+      "body": "Quick recap from today's Project Atlas sync: Daniel is sending Ana the Q3 architecture diagram today. We're booking a 30-minute follow-up next Tuesday at 10am once load-testing numbers are in. Daniel is adding idempotency keys to the webhook consumer before launch. Ana needs a one-page rollout plan by Friday, phased rollout starting with existing customers. Also looking up Acme Corp's enterprise pricing for comparison."
+    }
+  },
+  {
+    "kind": "create_doc",
+    "title": "One-page Project Atlas rollout plan",
+    "evidence": [
+      "Separately, for the executive review, I need a one-page rollout plan. Can you have a draft by Friday?",
+      "Friday works. I'll put together a one-pager covering scope, timeline, and risks."
+    ],
+    "args": {
+      "title": "Project Atlas Rollout Plan (One-Pager)",
+      "body": "One-page rollout plan for the executive review, due Friday (2026-09-18). Cover: scope, timeline, and risks; phased rollout starting with existing customers (phase one) then new signups (phase two); note the onboarding-screen alignment with the design team."
+    }
+  },
+  {
+    "kind": "lookup",
+    "title": "Look up Acme Corp enterprise tier pricing",
+    "evidence": [
+      "One more thing. Does anyone know what Acme Corp charges for their enterprise tier? I keep hearing they're pricier than us.",
+      "Not off the top of my head. Want me to look up Acme Corp's enterprise pricing after the call?"
+    ],
+    "args": {
+      "query": "Acme Corp enterprise tier pricing"
+    }
+  }
+]

@@ -1,0 +1,26 @@
+# secrets
+.env*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# node / next
+node_modules/
+.next/
+out/
+
+# build output
+audio-helper/.build/
+bin/
+
+# runtime artifacts
+.dev-logs/
+*.wav
+.ambi/
+.trigger/
+
+# macOS
+.DS_Store

@@ -1,0 +1,28 @@
+{
+  "name": "overheard-hands",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc --noEmit",
+    "trigger:dev": "npx trigger.dev@latest dev",
+    "test": "npm run build && node --test dist/test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@trigger.dev/sdk": "^4.3.0",
+    "exa-js": "^2.0.14",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.3",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
