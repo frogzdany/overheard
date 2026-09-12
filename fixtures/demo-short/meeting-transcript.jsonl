@@ -1,0 +1,16 @@
+{"t": 0.0, "speaker": "Speaker 0", "text": "Hey Daniel, quick sync before the review. Got a minute?"}
+{"t": 4.08, "speaker": "Speaker 1", "text": "Sure, go ahead."}
+{"t": 5.3, "speaker": "Speaker 0", "text": "How's Project Atlas looking this week, any blockers?"}
+{"t": 8.57, "speaker": "Speaker 1", "text": "Good progress, the ingestion pipeline's holding up fine."}
+{"t": 11.84, "speaker": "Speaker 0", "text": "Nice. Before we dive in, can you send me the Q3 architecture diagram today? I need it for leadership this afternoon."}
+{"t": 20.41, "speaker": "Speaker 1", "text": "Yeah, I'll send you the diagram today, within the hour."}
+{"t": 24.49, "speaker": "Speaker 0", "text": "Did the load numbers come back yet?"}
+{"t": 27.35, "speaker": "Speaker 1", "text": "Not yet, still running overnight."}
+{"t": 29.39, "speaker": "Speaker 0", "text": "Let's plan a follow-up once those are in. Thirty minutes, next Tuesday at ten?"}
+{"t": 35.1, "speaker": "Speaker 1", "text": "Tuesday at ten works, I'll block thirty minutes on my calendar."}
+{"t": 39.59, "speaker": "Speaker 0", "text": "Great, I'll send the invite."}
+{"t": 41.63, "speaker": "Speaker 1", "text": "Also, hiring's looking up, we got a signed offer out."}
+{"t": 45.71, "speaker": "Speaker 0", "text": "Separately, for the executive review, I need a one-page rollout plan. Can you have a draft by Friday?"}
+{"t": 53.06, "speaker": "Speaker 1", "text": "Friday works, I'll put together a one-pager covering scope, timeline, and key risks for the rollout."}
+{"t": 59.59, "speaker": "Speaker 0", "text": "One more thing, does anyone know what Acme Corp charges for their enterprise tier?"}
+{"t": 65.3, "speaker": "Speaker 1", "text": "Not off the top of my head. I'll look it up after the call."}
