@@ -19,6 +19,13 @@ When `ENGINE_TOKEN` is non-empty, every status callback includes `X-Engine-Token
 
 On startup, `src/server.ts` (and the `execute-action` Trigger.dev task) load `hands/.env` then the repo root `../.env`, in that order, without ever overriding a variable already set in the real process environment — so `export FOO=bar` in your shell always wins, then `hands/.env`, then the root `.env`. Only the file paths that were found are logged, never values.
 
+`ENGINE_URL` is the one variable the Trigger.dev worker cannot infer. The task reports
+`running` back to the engine *before* it dispatches, so a worker started without
+`ENGINE_URL` (or with the wrong port) fails that callback, never executes, and leaves
+the card stuck at `approved` with the reason only in the `trigger.dev dev` log. Export
+`ENGINE_URL` in the shell you start `npx trigger.dev@latest dev` from whenever the
+engine is not on the default `http://127.0.0.1:8765` (`run-demo.sh` already does).
+
 `npx trigger.dev@latest dev` performs its own automatic env loading (`.env`, `.env.development`, `.env.local`, `.env.development.local`, `dev.vars`), but only from its project directory, which for this package is `hands/` — it never reads the repo root `.env`. The `execute-action` task also imports `../env.js` itself (see above), so the repo root `.env` reaches trigger-mode runs anyway; if that import is ever removed, copy the needed keys into `hands/.env` instead.
 
 ## Trigger.dev mode

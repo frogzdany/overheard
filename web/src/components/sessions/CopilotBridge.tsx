@@ -172,7 +172,12 @@ function ChatActionCard({
   return (
     <ActionCard
       action={action}
-      busy={status === "executing"}
+      // "executing" is CopilotKit's state for "renderAndWaitForResponse is
+      // holding, waiting on respond()" — i.e. exactly the moment the user has
+      // to press Approve or Reject. Treating it as busy disabled all three
+      // buttons for the card's entire life, so a sidebar card could never be
+      // approved. Only "inProgress" (args still streaming in) is really busy.
+      busy={status === "inProgress"}
       onApprove={(edited) => void onApprove(edited)}
       onReject={() => respond?.({ approved: false })}
     />
@@ -207,6 +212,31 @@ function KindAction({
   return null
 }
 
+// Operating rules for the sidebar model, shipped as a readable rather than as
+// CopilotSidebar's `instructions` prop: with the 1.71 single-endpoint runtime
+// that prop never reaches the request body (verified against the
+// /api/copilotkit payload), while `useCopilotReadable` lands in `context`.
+//
+// Two behaviours need forcing. Every action tool here renders an approval card
+// the user edits field by field, so a clarifying question ("who owns it?",
+// "which Friday?") is a wasted round trip for something the card already asks
+// for — left alone the model asks instead of drawing the card. And the model
+// has no clock: asked for "by Friday" it went and called `lookup` to find out
+// today's date.
+function assistantRules(): string {
+  const today = new Date()
+  const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+    today.getDate(),
+  ).padStart(2, "0")}`
+  const weekday = today.toLocaleDateString("en-US", { weekday: "long" })
+  return [
+    `TODAY is ${iso} (${weekday}). Resolve every relative date ("Friday", "next Tuesday", "today") against it and emit ISO values: YYYY-MM-DD for a due date, YYYY-MM-DDTHH:MM:SS for a meeting start.`,
+    "When the user asks for a task, follow-up, message, document or lookup, CALL the matching action tool straight away with your best guess for every field. Do NOT ask clarifying questions first: the tool renders an editable approval card, and the user fixes any field and approves or rejects it there.",
+    "Infer the assignee, recipient, attendees and body from the user's wording and the meeting transcript you have been given. If a field is genuinely unknowable, leave it out rather than asking for it.",
+    "For questions about the meeting, answer from the transcript and the action list in your context, and quote the relevant line when it helps.",
+  ].join("\n\n")
+}
+
 export function CopilotBridge({
   sessionId,
   transcript,
@@ -228,6 +258,12 @@ export function CopilotBridge({
       })),
     [actions],
   )
+
+  useCopilotReadable({
+    description:
+      "Operating rules for you, the Overheard meeting assistant. Follow them exactly.",
+    value: assistantRules(),
+  })
 
   useCopilotReadable({
     description: "Last 60 transcript lines from this meeting, with speaker labels",
@@ -291,6 +327,7 @@ const SIDEBAR_LABELS = {
   initial:
     'Ask about this meeting or tell me what to do: "create a task for the diagram", "schedule a follow-up Tuesday 10am", "look up Acme pricing".',
 } as const
+
 
 /** Session-only chat sidebar. CopilotKit's CSS already keys off `.dark` (the
  * class next-themes puts on <html>); we still stamp the resolved mode on the

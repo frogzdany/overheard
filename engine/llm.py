@@ -114,14 +114,19 @@ def _call(*, system: str, user: str, max_tokens: int, timeout: float,
     attempt = 0
     while True:
         call_kwargs = dict(kwargs)
-        if _temperature_ok:
+        # Snapshot the latch per attempt: workers call this concurrently, so by
+        # the time a rejection lands another thread may already have flipped the
+        # global. Keying the retry off the global instead of "did THIS call send
+        # a temperature" made the loser of that race re-raise the 400.
+        sent_temperature = _temperature_ok
+        if sent_temperature:
             call_kwargs["temperature"] = TEMPERATURE
         try:
             return completion(**call_kwargs)
         except Exception as exc:
             # Retried outside the transient budget: it's a deterministic 400
             # that can only happen once, and the retry is the real call.
-            if _temperature_ok and _rejects_temperature(exc):
+            if sent_temperature and _rejects_temperature(exc):
                 _temperature_ok = False
                 continue
             if attempt or not _is_transient(exc):

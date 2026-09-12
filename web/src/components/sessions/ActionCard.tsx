@@ -266,7 +266,11 @@ export function ActionCard({ action, onApprove, onReject, busy }: ActionCardProp
           </Stack>
         ) : null}
 
-        {!pending ? <StatusStrip action={action} /> : null}
+        {/* EXECUTOR=trigger stages the run (and its approval waitpoint) the
+            moment the action is suggested, so a still-pending card already has
+            a runId. Show the strip then too — otherwise the one visible proof
+            that the run exists before approval never reaches the UI. */}
+        {!pending || action.runId ? <StatusStrip action={action} /> : null}
 
         <Flex align="center" gap="2" wrap="wrap">
           <Text fontSize="xs" color="fg.muted" fontFamily="mono" title="Tool the engine will call">

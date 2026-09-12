@@ -8,8 +8,14 @@ import type { Action, ActionArgs } from "@/types/action"
 export const ENGINE_URL =
   process.env.NEXT_PUBLIC_ENGINE_URL ?? "http://127.0.0.1:8765"
 
+// Default the socket to the SAME origin as ENGINE_URL. Deriving it (instead of
+// a second hardcoded default) means overriding only NEXT_PUBLIC_ENGINE_URL --
+// which is all run-demo.sh and the docs set -- moves REST *and* the WebSocket
+// together. With a fixed ws://127.0.0.1:8765 default, any non-default engine
+// port left the socket pointed at whatever happened to own 8765.
 export const ENGINE_WS =
-  process.env.NEXT_PUBLIC_ENGINE_WS ?? "ws://127.0.0.1:8765"
+  process.env.NEXT_PUBLIC_ENGINE_WS ??
+  ENGINE_URL.replace(/^http:/, "ws:").replace(/^https:/, "wss:")
 
 export interface SessionSummary {
   id: string
@@ -33,7 +39,7 @@ export interface SessionDetail extends SessionSummary {
     speaker: string | null
     source: string | null
   }[]
-  summary: { text: string; updatedAt: number | null; forcedFinal: boolean }
+  summary: { text: string; updatedAt: number | string | null; forcedFinal: boolean }
   archive: string | null
   qa: { id: string; question: string; askedAt: number | null }[]
   /** Curated questions other participants directed at the user. */
@@ -376,7 +382,7 @@ export interface LiveSessionState {
   /** Per-source interim text. Each source gets its own slot so the system and
    * mic streams don't overwrite each other while both are speaking. */
   interim: { system: string | null; mic: string | null }
-  summary: { text: string; updatedAt: number | null; forcedFinal: boolean } | null
+  summary: { text: string; updatedAt: number | string | null; forcedFinal: boolean } | null
   speakerLabels: Record<string, string>
   qa: QuestionAnswer[]
   ended: boolean

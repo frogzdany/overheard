@@ -23,7 +23,27 @@ OPENAI_STT_MODEL = (os.environ.get("OPENAI_STT_MODEL") or "gpt-live-transcribe")
 # --- insight extraction ---
 INSIGHT_INTERVAL_MS = 60_000  # extract every 60s
 INSIGHT_WINDOW_MIN = 2.0      # send the last N minutes of transcript to the LLM
-ACTIONS_INTERVAL_MS = 45_000  # discover executable commitments every 45s
+
+# --- actions worker ---
+# Discover executable commitments every N ms; override with ACTIONS_INTERVAL_MS env var (min 5000).
+_actions_interval = os.environ.get("ACTIONS_INTERVAL_MS")
+ACTIONS_INTERVAL_MS = 45_000
+if _actions_interval:
+    try:
+        _val = int(_actions_interval)
+        ACTIONS_INTERVAL_MS = max(_val, 5000) if _val >= 5000 else 45_000
+    except (ValueError, TypeError):
+        pass
+
+# Skip action extraction if fewer than N new characters in transcript (min 0).
+_actions_min_chars = os.environ.get("ACTIONS_MIN_NEW_CHARS")
+ACTIONS_MIN_NEW_CHARS = 80
+if _actions_min_chars:
+    try:
+        _val = int(_actions_min_chars)
+        ACTIONS_MIN_NEW_CHARS = _val if _val >= 0 else 80
+    except (ValueError, TypeError):
+        pass
 
 # --- rolling summary ---
 SUMMARY_INTERVAL_MS = 45_000  # tick every 45s

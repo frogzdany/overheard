@@ -2,13 +2,16 @@
 
 import { Badge, Box, Heading, Stack, Text } from "@chakra-ui/react"
 import { Markdown } from "@/components/Markdown"
-import { formatUnixSecondsTime } from "@/lib/format"
+import { formatEngineTime } from "@/lib/format"
 
 export function SummaryTab({
   summary,
   archive,
 }: {
-  summary: { text: string; updatedAt: number | null; forcedFinal: boolean } | null
+  // `updatedAt` arrives as unix SECONDS from the live bus event and as an
+  // ISO-8601 string from GET /sessions/{id}; formatEngineTime takes either.
+  // Formatting it as seconds only rendered the REST value as an em dash.
+  summary: { text: string; updatedAt: number | string | null; forcedFinal: boolean } | null
   archive: string | null
 }) {
   if (!summary?.text && !archive) {
@@ -33,7 +36,7 @@ export function SummaryTab({
             <Heading size="sm">Rolling summary</Heading>
             {summary.updatedAt ? (
               <Text fontSize="xs" color="fg.muted" mt="1">
-                Updated {formatUnixSecondsTime(summary.updatedAt)} UTC
+                Updated {formatEngineTime(summary.updatedAt)} UTC
                 {summary.forcedFinal ? (
                   <Badge ml="2" colorPalette="green">final</Badge>
                 ) : null}
